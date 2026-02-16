@@ -1,0 +1,47 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./apps/api
+    env_file: .env
+    volumes:
+      - coursegen_data:/data
+      - ./apps/api:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./apps/api
+    env_file: .env
+    command: ["rq", "worker", "coursegen", "--url", "redis://redis:6379/0"]
+    volumes:
+      - coursegen_data:/data
+      - ./apps/api:/app
+    depends_on:
+      - redis
+      - api
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+    env_file: .env
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  coursegen_data:
