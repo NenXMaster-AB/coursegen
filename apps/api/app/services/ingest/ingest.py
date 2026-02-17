@@ -16,10 +16,14 @@ async def ingest_book(session: AsyncSession, file_path: str, title: str | None =
     if ext not in SUPPORTED:
         raise ValueError(f"Unsupported file type: {ext}. Supported: {sorted(SUPPORTED)}")
 
+    toc_entries: list[tuple[int, str, int]] | None = None
+    page_offsets: list[int] | None = None
     if ext == ".pdf":
         ex = extract_pdf(file_path)
         full_text = ex.text
         toc_titles = [t for (_, t, _) in ex.toc] if ex.toc else None
+        toc_entries = ex.toc or None
+        page_offsets = ex.page_offsets
         source_type = "pdf"
     elif ext == ".epub":
         ex = extract_epub(file_path)
@@ -31,13 +35,20 @@ async def ingest_book(session: AsyncSession, file_path: str, title: str | None =
         toc_titles = None
         source_type = "text"
 
-    full_text = clean_text(full_text)
+    # Keep raw PDF text when using page-based TOC offsets so slicing remains aligned.
+    if not (toc_entries and page_offsets):
+        full_text = clean_text(full_text)
     inferred_title = title or os.path.basename(file_path)
     book = Book(title=inferred_title, author=author, source_type=source_type)
     session.add(book)
     await session.flush()
 
-    spans = chapterize(full_text, toc_titles=toc_titles)
+    spans = chapterize(
+        full_text,
+        toc_titles=toc_titles,
+        toc_entries=toc_entries,
+        page_offsets=page_offsets,
+    )
 
     # store chapters + chunks
     for span in spans:

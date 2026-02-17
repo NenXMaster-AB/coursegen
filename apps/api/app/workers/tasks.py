@@ -13,25 +13,31 @@ def _run(coro):
     return asyncio.get_event_loop().run_until_complete(coro)
 
 async def _update_job(job_id: str, *, status: str | None = None, progress: int | None = None, message: str | None = None):
-    async with SessionLocal() as session:
-        row = (await session.execute(select(Job).where(Job.id==job_id))).scalar_one_or_none()
-        if not row:
-            return
-        if status is not None:
-            row.status = status
-        if progress is not None:
-            row.progress = progress
-        if message is not None:
-            row.message = message[:512]
-        row.updated_at = dt.datetime.utcnow()
-        await session.commit()
+    try:
+        async with SessionLocal() as session:
+            row = (await session.execute(select(Job).where(Job.id==job_id))).scalar_one_or_none()
+            if not row:
+                return
+            if status is not None:
+                row.status = status
+            if progress is not None:
+                row.progress = progress
+            if message is not None:
+                row.message = message[:512]
+            row.updated_at = dt.datetime.utcnow()
+            await session.commit()
+    except Exception:
+        # Progress updates are non-critical; SQLite lock errors during
+        # concurrent writes are expected and safe to ignore here.
+        if status in ("finished", "failed"):
+            raise  # Status transitions must succeed
 
 def generate_job(payload: dict):
     rq_job = get_current_job()
     job_id = rq_job.id if rq_job else payload.get("job_id") or "unknown"
 
-    def progress_cb(pct: int, msg: str):
-        _run(_update_job(job_id, progress=pct, message=msg, status="started"))
+    async def progress_cb(pct: int, msg: str):
+        await _update_job(job_id, progress=pct, message=msg, status="started")
 
     try:
         _run(_update_job(job_id, status="started", progress=1, message="Starting"))

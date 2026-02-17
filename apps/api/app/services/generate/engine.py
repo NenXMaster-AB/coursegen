@@ -1,5 +1,5 @@
 from __future__ import annotations
-import hashlib, json
+import asyncio, hashlib, json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..llm.openai_provider import OpenAIProvider
@@ -50,28 +50,37 @@ async def generate_artifacts(
     total_steps = max(1, len(chunks) + len(outputs))
     done = 0
 
-    # Map: notes for each chunk
-    notes: list[dict] = []
-    for c in chunks:
+    # Map: notes for each chunk (concurrent with limited parallelism)
+    semaphore = asyncio.Semaphore(5)
+    progress_lock = asyncio.Lock()
+    last_progress_pct = 0
+
+    async def _map_chunk(c):
+        nonlocal done, last_progress_pct
         sys, usr = map_prompt(c.text)
-        out = await provider.generate(
-            system=sys,
-            user=usr,
-            json_schema=None,  # keep provider-agnostic; map returns JSON by instruction
-            params={"model": model, "temperature": temperature},
-        )
-        # best-effort json parse
+        async with semaphore:
+            out = await provider.generate(
+                system=sys,
+                user=usr,
+                json_schema=None,
+                params={"model": model, "temperature": temperature},
+            )
+        done += 1
+        # Throttle DB writes: only update when progress jumps by 5%+
+        pct = int(done / total_steps * 100)
+        if progress_cb and pct >= last_progress_pct + 5:
+            async with progress_lock:
+                if pct >= last_progress_pct + 5:
+                    last_progress_pct = pct
+                    await progress_cb(pct, f"Mapped chunk {done}/{len(chunks)}")
         if "raw_text" in out and isinstance(out["raw_text"], str):
             try:
-                notes.append(json.loads(out["raw_text"]))
+                return json.loads(out["raw_text"])
             except Exception:
-                notes.append({"important_points":[out["raw_text"]], "concepts":[], "definitions":[], "examples":[], "pitfalls":[]})
-        else:
-            notes.append(out)
+                return {"important_points":[out["raw_text"]], "concepts":[], "definitions":[], "examples":[], "pitfalls":[]}
+        return out
 
-        done += 1
-        if progress_cb:
-            progress_cb(int(done/total_steps*100), f"Mapped chunk {c.chunk_index}/{len(chunks)}")
+    notes = list(await asyncio.gather(*[_map_chunk(c) for c in chunks]))
 
     # Reduce: each artifact
     for artifact_type in outputs:
@@ -80,7 +89,7 @@ async def generate_artifacts(
             "tone": tone,
             "length": length,
             "include_code": include_code,
-            "provider": provider_name,
+            "provider_name": provider_name,
             "model": model or "",
             "temperature": temperature,
             "artifact_type": artifact_type,
@@ -127,7 +136,7 @@ async def generate_artifacts(
 
         done += 1
         if progress_cb:
-            progress_cb(int(done/total_steps*100), f"Generated {artifact_type}")
+            await progress_cb(int(done/total_steps*100), f"Generated {artifact_type}")
 
     await session.commit()
     return created_ids

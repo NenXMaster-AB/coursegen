@@ -31,6 +31,7 @@ class ArtifactOut(BaseModel):
     created_at: dt.datetime
 
 class GenerateRequest(BaseModel):
+    model_config = {"populate_by_name": True}
     book_id: int
     chapter_index: int = Field(..., ge=1)
     outputs: list[ArtifactType]
@@ -38,7 +39,7 @@ class GenerateRequest(BaseModel):
     tone: Literal["tutor", "socratic", "concise"] = "tutor"
     length: Literal["short", "medium", "long"] = "medium"
     include_code: bool = True
-    provider: str | None = None
+    provider_name: str | None = Field(None, alias="provider")
     model: str | None = None
     temperature: float = 0.3
 

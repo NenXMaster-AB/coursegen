@@ -1,8 +1,22 @@
 from __future__ import annotations
 from typing import Any
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 from ...settings import settings
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Only retry on rate limits (429) and server errors (5xx)."""
+    if isinstance(exc, RuntimeError):
+        msg = str(exc)
+        # Don't retry auth/permission errors
+        if "error 401" in msg or "error 403" in msg:
+            return False
+        # Retry rate limits and server errors
+        if "error 429" in msg or any(f"error {c}" in msg for c in range(500, 600)):
+            return True
+    return False
+
 
 class OpenAIProvider:
     name = "openai"
@@ -13,12 +27,11 @@ class OpenAIProvider:
         if not self.api_key:
             raise ValueError("OpenAI API key missing. Set COURSEGEN_OPENAI_API_KEY.")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    @retry(retry=retry_if_exception(_is_retryable), stop=stop_after_attempt(5), wait=wait_exponential(min=2, max=30))
     async def generate(self, *, system: str, user: str, json_schema: dict | None, params: dict) -> dict[str, Any]:
         model = params.get("model") or settings.openai_model
         temperature = float(params.get("temperature", 0.3))
 
-        # Use Responses API style (compatible with newer OpenAI); fallback to chat-completions-like
         url = f"{self.base_url}/responses"
         headers = {"Authorization": f"Bearer {self.api_key}"}
 
@@ -30,7 +43,6 @@ class OpenAIProvider:
             ],
             "temperature": temperature,
         }
-        # If schema provided, ask for JSON output
         if json_schema:
             payload["text"] = {"format": {"type": "json_schema", "json_schema": {"name": "artifact", "schema": json_schema}}}
 
