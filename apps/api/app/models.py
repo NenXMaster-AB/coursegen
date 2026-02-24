@@ -54,6 +54,22 @@ class Artifact(Base):
 
     chapter: Mapped["Chapter"] = relationship(back_populates="artifacts")
 
+class Image(Base):
+    __tablename__ = "images"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    book_id: Mapped[int] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), index=True)
+    chapter_id: Mapped[int | None] = mapped_column(ForeignKey("chapters.id", ondelete="SET NULL"), nullable=True, index=True)
+    filename: Mapped[str] = mapped_column(String(512))
+    mime_type: Mapped[str] = mapped_column(String(64))
+    source_page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position_offset: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    width: Mapped[int] = mapped_column(Integer, default=0)
+    height: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    book: Mapped["Book"] = relationship()
+    chapter: Mapped["Chapter | None"] = relationship()
+
 class Job(Base):
     __tablename__ = "jobs"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)  # rq job id
