@@ -9,6 +9,7 @@ import { ArtifactTabs } from "@/components/artifacts/ArtifactTabs";
 import { useChapters } from "@/lib/hooks/useChapters";
 import { useArtifacts } from "@/lib/hooks/useArtifacts";
 import { useJob } from "@/lib/hooks/useJob";
+import { ImageGallery } from "@/components/book/ImageGallery";
 import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/lib/format";
 import { Loader2 } from "lucide-react";
@@ -83,6 +84,13 @@ export default function ChapterPage() {
         </div>
       ) : (
         <ArtifactTabs artifacts={artifacts} />
+      )}
+
+      {/* Extracted images */}
+      {chapter.images && chapter.images.length > 0 && (
+        <div className="mt-6">
+          <ImageGallery images={chapter.images} />
+        </div>
       )}
     </PageTransition>
   );

@@ -1,9 +1,13 @@
 from __future__ import annotations
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from .db import engine, Base
 from .routers import books, chapters, artifacts, jobs, generate, providers
+
+IMAGES_ROOT = "/data/images"
 
 app = FastAPI(title="CourseGen API", version="0.1.0")
 
@@ -30,3 +34,7 @@ app.include_router(artifacts.router)
 app.include_router(jobs.router)
 app.include_router(generate.router)
 app.include_router(providers.router)
+
+# Serve extracted images as static files
+os.makedirs(IMAGES_ROOT, exist_ok=True)
+app.mount("/images", StaticFiles(directory=IMAGES_ROOT), name="images")

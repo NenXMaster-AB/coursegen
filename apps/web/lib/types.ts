@@ -8,12 +8,21 @@ export interface Book {
   created_at: string;
 }
 
+export interface ChapterImage {
+  id: number;
+  url: string;
+  mime_type: string;
+  width: number;
+  height: number;
+}
+
 export interface Chapter {
   id: number;
   book_id: number;
   index: number;
   title: string;
   word_count: number;
+  images?: ChapterImage[];
 }
 
 export interface ChapterPreview {

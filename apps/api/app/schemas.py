@@ -11,12 +11,20 @@ class BookOut(BaseModel):
     source_type: str
     created_at: dt.datetime
 
+class ImageOut(BaseModel):
+    id: int
+    url: str
+    mime_type: str
+    width: int
+    height: int
+
 class ChapterOut(BaseModel):
     id: int
     book_id: int
     index: int
     title: str
     word_count: int
+    images: list[ImageOut] = []
 
 class ArtifactOut(BaseModel):
     id: int
