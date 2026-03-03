@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, hashlib, json
+import asyncio, hashlib, json, re
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from ..llm.openai_provider import OpenAIProvider
@@ -8,6 +8,13 @@ from ...settings import settings
 from ...models import Chapter, Chunk, Artifact
 from .prompts import map_prompt, reduce_prompt
 from .render import to_markdown
+
+_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?(.*?)\n?\s*```$", re.DOTALL)
+
+def _strip_code_fence(text: str) -> str:
+    """Strip markdown code fences (```json ... ```) wrapping JSON."""
+    m = _CODE_FENCE_RE.match(text.strip())
+    return m.group(1).strip() if m else text
 
 def _hash_params(d: dict) -> str:
     s = json.dumps(d, sort_keys=True)
@@ -75,7 +82,7 @@ async def generate_artifacts(
                     await progress_cb(pct, f"Mapped chunk {done}/{len(chunks)}")
         if "raw_text" in out and isinstance(out["raw_text"], str):
             try:
-                return json.loads(out["raw_text"])
+                return json.loads(_strip_code_fence(out["raw_text"]))
             except Exception:
                 return {"important_points":[out["raw_text"]], "concepts":[], "definitions":[], "examples":[], "pitfalls":[]}
         return out
@@ -106,7 +113,7 @@ async def generate_artifacts(
 
         if "raw_text" in out and isinstance(out["raw_text"], str):
             try:
-                data = json.loads(out["raw_text"])
+                data = json.loads(_strip_code_fence(out["raw_text"]))
             except Exception:
                 data = {"raw_text": out["raw_text"]}
         else:
