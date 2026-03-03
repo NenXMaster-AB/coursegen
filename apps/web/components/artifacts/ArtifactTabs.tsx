@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, HelpCircle, FlaskConical, Lightbulb } from "lucide-react";
+import { FileText, HelpCircle, FlaskConical, Lightbulb, Layers } from "lucide-react";
 import { SummaryView } from "./summary/SummaryView";
 import { QuizView } from "./quiz/QuizView";
 import { LabView } from "./lab/LabView";
 import { TakeawaysView } from "./takeaways/TakeawaysView";
+import { FlashcardView } from "./flashcards/FlashcardView";
 import type { Artifact, ArtifactType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const tabConfig: { type: ArtifactType; label: string; icon: typeof FileText }[] 
   { type: "quiz", label: "Quiz", icon: HelpCircle },
   { type: "lab", label: "Lab", icon: FlaskConical },
   { type: "takeaways", label: "Takeaways", icon: Lightbulb },
+  { type: "flashcards", label: "Flashcards", icon: Layers },
 ];
 
 function getLatestByType(artifacts: Artifact[]): Map<ArtifactType, Artifact> {
@@ -97,6 +99,9 @@ export function ArtifactTabs({ artifacts }: ArtifactTabsProps) {
             )}
             {activeTab === "takeaways" && latest.get("takeaways") && (
               <TakeawaysView artifact={latest.get("takeaways")!} />
+            )}
+            {activeTab === "flashcards" && latest.get("flashcards") && (
+              <FlashcardView artifact={latest.get("flashcards")!} />
             )}
           </motion.div>
         </AnimatePresence>

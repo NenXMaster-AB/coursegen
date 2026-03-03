@@ -11,6 +11,9 @@ redis==5.2.1
 httpx==0.27.2
 tenacity==9.0.0
 
+# flashcards / anki export
+genanki==0.13.1
+
 # ingestion
 pymupdf==1.24.10
 ebooklib==0.18

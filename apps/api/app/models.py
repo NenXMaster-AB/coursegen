@@ -1,5 +1,5 @@
 import datetime as dt
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, JSON, UniqueConstraint
+from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 
@@ -69,6 +69,20 @@ class Image(Base):
 
     book: Mapped["Book"] = relationship()
     chapter: Mapped["Chapter | None"] = relationship()
+
+class FlashcardReview(Base):
+    __tablename__ = "flashcard_reviews"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id", ondelete="CASCADE"), index=True)
+    card_index: Mapped[int] = mapped_column(Integer)
+    ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
+    interval: Mapped[int] = mapped_column(Integer, default=0)
+    repetitions: Mapped[int] = mapped_column(Integer, default=0)
+    next_review: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+    last_review: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    artifact: Mapped["Artifact"] = relationship()
+    __table_args__ = (UniqueConstraint("artifact_id", "card_index", name="uq_flashcard_review"),)
 
 class Job(Base):
     __tablename__ = "jobs"

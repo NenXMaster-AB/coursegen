@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from .db import engine, Base
-from .routers import books, chapters, artifacts, jobs, generate, providers
+from .routers import books, chapters, artifacts, jobs, generate, providers, flashcards
 
 IMAGES_ROOT = "/data/images"
 
@@ -34,6 +34,7 @@ app.include_router(artifacts.router)
 app.include_router(jobs.router)
 app.include_router(generate.router)
 app.include_router(providers.router)
+app.include_router(flashcards.router)
 
 # Serve extracted images as static files
 os.makedirs(IMAGES_ROOT, exist_ok=True)

@@ -7,6 +7,8 @@ import type {
   GenerateRequest,
   GenerateResponse,
   ProvidersResponse,
+  FlashcardReviewState,
+  DeckStats,
 } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -86,6 +88,37 @@ export function generate(body: GenerateRequest, signal?: AbortSignal): Promise<G
 
 export function getJob(jobId: string, signal?: AbortSignal): Promise<Job> {
   return request<Job>(`/jobs/${jobId}`, undefined, signal);
+}
+
+// ─── Flashcards SRS ───
+
+export function getFlashcardSession(artifactId: number, signal?: AbortSignal): Promise<FlashcardReviewState[]> {
+  return request<FlashcardReviewState[]>(`/flashcards/${artifactId}/session`, undefined, signal);
+}
+
+export function submitFlashcardReview(
+  artifactId: number,
+  cardIndex: number,
+  quality: number,
+  signal?: AbortSignal,
+): Promise<FlashcardReviewState> {
+  return request<FlashcardReviewState>(
+    `/flashcards/${artifactId}/review`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card_index: cardIndex, quality }),
+    },
+    signal,
+  );
+}
+
+export function getFlashcardStats(artifactId: number, signal?: AbortSignal): Promise<DeckStats> {
+  return request<DeckStats>(`/flashcards/${artifactId}/stats`, undefined, signal);
+}
+
+export function getAnkiExportUrl(artifactId: number): string {
+  return `${API_BASE}/flashcards/${artifactId}/export-anki`;
 }
 
 // ─── Providers ───
