@@ -39,7 +39,7 @@ export function ArtifactTabs({ artifacts }: ArtifactTabsProps) {
   const latest = getLatestByType(artifacts);
   const availableTypes = Array.from(latest.keys());
   const [activeTab, setActiveTab] = useState<ArtifactType>(
-    availableTypes[0] ?? "summary",
+    availableTypes.includes("summary") ? "summary" : availableTypes[0] ?? "summary",
   );
 
   if (artifacts.length === 0) {
