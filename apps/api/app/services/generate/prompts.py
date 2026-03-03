@@ -50,6 +50,10 @@ If type=lab:
   "notebook_cells":[{{"cell_type":"markdown"|"code","source":str}}]
 }}
 
+If type=flashcards:
+{{ "cards": [{{"front": str, "back": str, "tags": [str], "difficulty": "easy"|"medium"|"hard"}}] }}
+Generate 15–25 flashcards. "front" is a clear question or prompt, "back" is a concise answer. "tags" categorize the card by topic. "difficulty" reflects the complexity of the concept.
+
 CHUNK NOTES:
 """ + '"""\n' + __import__("json").dumps(notes_json_list) + '\n"""'
     return system, user

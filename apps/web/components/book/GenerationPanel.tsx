@@ -34,6 +34,7 @@ const artifactOptions: { type: ArtifactType; label: string }[] = [
   { type: "takeaways", label: "Takeaways" },
   { type: "quiz", label: "Quiz" },
   { type: "lab", label: "Lab" },
+  { type: "flashcards", label: "Flashcards" },
 ];
 
 export function GenerationPanel({

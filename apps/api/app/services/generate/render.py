@@ -69,4 +69,16 @@ def to_markdown(artifact_type: str, data: dict[str, Any]) -> str:
                 md.append(f"## {title}\n" + "\n".join([f"- {i}" for i in items]) + "\n")
         return "\n".join(md).strip()
 
+    if artifact_type == "flashcards":
+        md = ["# Flashcards\n"]
+        for i, card in enumerate(data.get("cards") or [], start=1):
+            tags = ", ".join(card.get("tags") or [])
+            diff = card.get("difficulty", "")
+            md.append(f"### Card {i}")
+            if tags:
+                md.append(f"*Tags: {tags}*" + (f" | *{diff}*" if diff else ""))
+            md.append(f"\n**Q:** {card.get('front', '')}\n")
+            md.append(f"**A:** {card.get('back', '')}\n")
+        return "\n".join(md).strip()
+
     return json.dumps(data, indent=2)

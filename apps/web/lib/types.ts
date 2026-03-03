@@ -31,14 +31,14 @@ export interface ChapterPreview {
   preview: string;
 }
 
-export type ArtifactType = "summary" | "quiz" | "lab" | "takeaways";
+export type ArtifactType = "summary" | "quiz" | "lab" | "takeaways" | "flashcards";
 
 export interface Artifact {
   id: number;
   chapter_id: number;
   type: ArtifactType;
   content_md: string;
-  content_json: SummaryContent | QuizContent | LabContent | TakeawaysContent;
+  content_json: SummaryContent | QuizContent | LabContent | TakeawaysContent | FlashcardContent;
   provider: string;
   model: string;
   params_hash: string;
@@ -106,6 +106,36 @@ export interface TakeawaysContent {
   common_mistakes: string[];
   when_to_use: string[];
   when_not_to_use: string[];
+}
+
+// ─── Flashcards ───
+
+export interface Flashcard {
+  front: string;
+  back: string;
+  tags: string[];
+  difficulty: "easy" | "medium" | "hard";
+}
+
+export interface FlashcardContent {
+  cards: Flashcard[];
+}
+
+export interface FlashcardReviewState {
+  card_index: number;
+  ease_factor: number;
+  interval: number;
+  repetitions: number;
+  next_review: string;
+  last_review: string | null;
+}
+
+export interface DeckStats {
+  total_cards: number;
+  due_now: number;
+  learning: number;
+  mature: number;
+  average_ease: number;
 }
 
 // ─── Job ───
