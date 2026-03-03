@@ -8,7 +8,6 @@ import { BookHeader } from "@/components/book/BookHeader";
 import { useChapters } from "@/lib/hooks/useChapters";
 import { getBooks } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
-import { staggerContainer, staggerItem } from "@/lib/motion";
 import { ChevronRight, BookOpen, Loader2 } from "lucide-react";
 import type { Book } from "@/lib/types";
 
@@ -63,16 +62,13 @@ export default function BookDetailPage() {
           <Loader2 className="w-5 h-5 text-gold animate-spin" />
         </div>
       ) : (
-        <motion.div
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="space-y-2"
-        >
-          {chapters.map((ch) => (
+        <div className="space-y-2">
+          {chapters.map((ch, i) => (
             <motion.button
               key={ch.id}
-              variants={staggerItem}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut", delay: i * 0.04 }}
               onClick={() => router.push(`/books/${bookId}/chapters/${ch.index}`)}
               className="w-full text-left rounded-lg border border-border-subtle bg-card px-5 py-4 flex items-center gap-4 hover:border-border-default hover:bg-elevated/50 transition-all group cursor-pointer"
             >
@@ -95,7 +91,7 @@ export default function BookDetailPage() {
               <ChevronRight className="w-4 h-4 text-text-tertiary group-hover:text-gold transition-colors shrink-0" />
             </motion.button>
           ))}
-        </motion.div>
+        </div>
       )}
     </PageTransition>
   );
