@@ -5,7 +5,7 @@ import { getChapters } from "@/lib/api";
 
 export function useChapters(bookId: number | null) {
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!bookId);
   const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(
