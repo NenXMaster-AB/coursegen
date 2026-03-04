@@ -28,7 +28,7 @@ export function ChapterNav({
   }, [chapters, search]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)]">
+    <div className="flex flex-col h-full">
       <div className="p-3 border-b border-border-subtle">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />

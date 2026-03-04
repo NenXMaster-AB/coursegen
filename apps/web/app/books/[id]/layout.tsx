@@ -58,9 +58,9 @@ export default function BookLayout({
     : [];
 
   return (
-    <>
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header breadcrumbs={breadcrumbs} />
-      <div className="flex h-[calc(100vh-65px)]">
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar */}
         <aside
           className={`${
@@ -101,6 +101,6 @@ export default function BookLayout({
           <div className="mx-auto max-w-4xl px-8 py-8">{children}</div>
         </main>
       </div>
-    </>
+    </div>
   );
 }
