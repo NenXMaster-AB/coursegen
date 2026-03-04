@@ -136,6 +136,7 @@ export interface DeckStats {
   learning: number;
   mature: number;
   average_ease: number;
+  next_review_at: string | null;
 }
 
 // ─── Job ───

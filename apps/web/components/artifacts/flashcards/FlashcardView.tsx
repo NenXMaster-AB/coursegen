@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "motion/react";
-import { Layers, Download, Play } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Layers, Download, Play, BookOpen, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { getFlashcardStats, getFlashcardSession, getAnkiExportUrl } from "@/lib/api";
@@ -15,14 +15,30 @@ interface FlashcardViewProps {
   artifact: Artifact;
 }
 
+function formatTimeUntil(isoDate: string): string {
+  const diff = new Date(isoDate).getTime() - Date.now();
+  if (diff <= 0) return "now";
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remHours = hours % 24;
+    return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+  }
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export function FlashcardView({ artifact }: FlashcardViewProps) {
   const content = artifact.content_json as FlashcardContent;
   const cards = content?.cards || [];
 
-  const [mode, setMode] = useState<"browse" | "review">("browse");
+  const [mode, setMode] = useState<"browse" | "review" | "practice">("browse");
   const [stats, setStats] = useState<DeckStatsType | null>(null);
   const [dueIndices, setDueIndices] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const reviewsDone = stats !== null && stats.due_now === 0;
 
   const fetchStats = useCallback(async () => {
     try {
@@ -51,6 +67,11 @@ export function FlashcardView({ artifact }: FlashcardViewProps) {
     }
   };
 
+  const startPractice = () => {
+    setDueIndices(cards.map((_, i) => i));
+    setMode("practice");
+  };
+
   const handleReviewComplete = () => {
     setMode("browse");
     fetchStats();
@@ -64,12 +85,13 @@ export function FlashcardView({ artifact }: FlashcardViewProps) {
     );
   }
 
-  if (mode === "review" && dueIndices.length > 0) {
+  if ((mode === "review" || mode === "practice") && dueIndices.length > 0) {
     return (
       <ReviewSession
         artifactId={artifact.id}
         cards={cards}
         dueIndices={dueIndices}
+        mode={mode}
         onComplete={handleReviewComplete}
       />
     );
@@ -104,10 +126,19 @@ export function FlashcardView({ artifact }: FlashcardViewProps) {
             Export Anki
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={startPractice}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            Practice
+          </Button>
+          <Button
             size="sm"
             className="gap-1.5 text-xs"
             onClick={startReview}
-            disabled={loading || (stats !== null && stats.due_now === 0)}
+            disabled={loading || reviewsDone}
           >
             <Play className="w-3.5 h-3.5" />
             Start Review
@@ -120,12 +151,57 @@ export function FlashcardView({ artifact }: FlashcardViewProps) {
         </div>
       </motion.div>
 
+      {/* Reviews complete banner */}
+      <AnimatePresence>
+        {reviewsDone && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-emerald-400">
+                  You&apos;re all caught up!
+                </p>
+                <p className="text-xs text-emerald-400/70 mt-0.5">
+                  {stats.next_review_at ? (
+                    <>
+                      <Clock className="w-3 h-3 inline mr-1 -mt-0.5" />
+                      Next review due in {formatTimeUntil(stats.next_review_at)}. Use Practice to study without affecting your schedule.
+                    </>
+                  ) : (
+                    <>Reviews complete for today. Use Practice to keep studying without affecting your schedule.</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Stats */}
-      {stats && (
-        <motion.div variants={staggerItem}>
-          <DeckStats stats={stats} />
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {stats && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            <DeckStats stats={stats} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mode explanation */}
+      <motion.div variants={staggerItem}>
+        <p className="text-[11px] text-text-tertiary text-right">
+          Review uses spaced repetition scheduling. Practice lets you study anytime without affecting progress.
+        </p>
+      </motion.div>
 
       {/* Card grid */}
       <motion.div variants={staggerItem}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { RotateCcw, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ interface ReviewSessionProps {
   artifactId: number;
   cards: Flashcard[];
   dueIndices: number[];
+  mode?: "review" | "practice";
   onComplete: () => void;
 }
 
@@ -51,7 +52,7 @@ const ratingButtons = [
   { quality: 5, label: "Easy", color: "bg-gold/15 text-gold hover:bg-gold/25 border-gold/30" },
 ];
 
-export function ReviewSession({ artifactId, cards, dueIndices, onComplete }: ReviewSessionProps) {
+export function ReviewSession({ artifactId, cards, dueIndices, mode = "review", onComplete }: ReviewSessionProps) {
   const [state, dispatch] = useReducer(reducer, {
     position: 0,
     flipped: false,
@@ -60,21 +61,26 @@ export function ReviewSession({ artifactId, cards, dueIndices, onComplete }: Rev
   });
 
   const totalDue = dueIndices.length;
+  const pendingReviews = useRef<Promise<unknown>[]>([]);
+  const [saving, setSaving] = useState(false);
 
   const handleRate = useCallback(
     (quality: number) => {
-      const cardIndex = dueIndices[state.position];
-      // Fire-and-forget API call
-      submitFlashcardReview(artifactId, cardIndex, quality).catch(() => {});
-
-      if (state.position + 1 >= totalDue) {
-        dispatch({ type: "rate", quality });
-        // Session complete after a brief moment
-      } else {
-        dispatch({ type: "rate", quality });
+      if (mode === "review") {
+        const cardIndex = dueIndices[state.position];
+        const p = submitFlashcardReview(artifactId, cardIndex, quality).catch(() => {});
+        pendingReviews.current.push(p);
       }
+
+      const isLast = state.position + 1 >= totalDue;
+      if (isLast && mode === "review") {
+        setSaving(true);
+        Promise.all(pendingReviews.current).finally(() => setSaving(false));
+      }
+
+      dispatch({ type: "rate", quality });
     },
-    [artifactId, dueIndices, state.position, totalDue],
+    [artifactId, dueIndices, mode, state.position, totalDue],
   );
 
   // Session complete
@@ -90,9 +96,12 @@ export function ReviewSession({ artifactId, cards, dueIndices, onComplete }: Rev
         animate={{ opacity: 1, scale: 1 }}
         className="rounded-xl border border-border-subtle bg-card p-8 text-center space-y-6"
       >
-        <h3 className="text-lg font-semibold text-text-primary">Session Complete</h3>
+        <h3 className="text-lg font-semibold text-text-primary">
+          {mode === "practice" ? "Practice Complete" : "Session Complete"}
+        </h3>
         <p className="text-sm text-text-secondary">
-          You reviewed {totalDue} card{totalDue !== 1 ? "s" : ""}.
+          You {mode === "practice" ? "practiced" : "reviewed"} {totalDue} card{totalDue !== 1 ? "s" : ""}.
+          {mode === "practice" && " No SRS stats were affected."}
         </p>
         <div className="flex items-center justify-center gap-4 text-xs">
           {again > 0 && <span className="text-red-400">Again: {again}</span>}
@@ -100,9 +109,9 @@ export function ReviewSession({ artifactId, cards, dueIndices, onComplete }: Rev
           {good > 0 && <span className="text-emerald-400">Good: {good}</span>}
           {easy > 0 && <span className="text-gold">Easy: {easy}</span>}
         </div>
-        <Button onClick={onComplete} size="sm" className="gap-1.5">
+        <Button onClick={onComplete} size="sm" className="gap-1.5" disabled={saving}>
           <RotateCcw className="w-3.5 h-3.5" />
-          Back to Deck
+          {saving ? "Saving…" : "Back to Deck"}
         </Button>
       </motion.div>
     );

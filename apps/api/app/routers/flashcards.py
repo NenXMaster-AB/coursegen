@@ -109,12 +109,17 @@ async def get_stats(artifact_id: int, db: AsyncSession = Depends(get_db)):
     mature = sum(1 for r in rows if r.interval >= 21)
     avg_ease = sum(r.ease_factor for r in rows) / len(rows) if rows else 2.5
 
+    next_review_at = None
+    if due_now == 0 and rows:
+        next_review_at = min(r.next_review for r in rows)
+
     return DeckStatsOut(
         total_cards=len(rows),
         due_now=due_now,
         learning=learning,
         mature=mature,
         average_ease=round(avg_ease, 2),
+        next_review_at=next_review_at,
     )
 
 

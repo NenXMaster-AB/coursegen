@@ -69,6 +69,7 @@ class DeckStatsOut(BaseModel):
     learning: int
     mature: int
     average_ease: float
+    next_review_at: dt.datetime | None = None
 
 class JobOut(BaseModel):
     id: str
