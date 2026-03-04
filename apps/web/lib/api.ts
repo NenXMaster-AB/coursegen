@@ -92,8 +92,17 @@ export function getJob(jobId: string, signal?: AbortSignal): Promise<Job> {
 
 // ─── Flashcards SRS ───
 
+function getUserTz(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return "UTC";
+  }
+}
+
 export function getFlashcardSession(artifactId: number, signal?: AbortSignal): Promise<FlashcardReviewState[]> {
-  return request<FlashcardReviewState[]>(`/flashcards/${artifactId}/session`, undefined, signal);
+  const tz = encodeURIComponent(getUserTz());
+  return request<FlashcardReviewState[]>(`/flashcards/${artifactId}/session?tz=${tz}`, undefined, signal);
 }
 
 export function submitFlashcardReview(
@@ -102,8 +111,9 @@ export function submitFlashcardReview(
   quality: number,
   signal?: AbortSignal,
 ): Promise<FlashcardReviewState> {
+  const tz = encodeURIComponent(getUserTz());
   return request<FlashcardReviewState>(
-    `/flashcards/${artifactId}/review`,
+    `/flashcards/${artifactId}/review?tz=${tz}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -114,7 +124,8 @@ export function submitFlashcardReview(
 }
 
 export function getFlashcardStats(artifactId: number, signal?: AbortSignal): Promise<DeckStats> {
-  return request<DeckStats>(`/flashcards/${artifactId}/stats`, undefined, signal);
+  const tz = encodeURIComponent(getUserTz());
+  return request<DeckStats>(`/flashcards/${artifactId}/stats?tz=${tz}`, undefined, signal);
 }
 
 export function getAnkiExportUrl(artifactId: number): string {

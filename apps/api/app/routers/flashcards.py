@@ -1,6 +1,7 @@
 from __future__ import annotations
 import datetime as dt
-from fastapi import APIRouter, Depends, HTTPException
+from zoneinfo import ZoneInfo
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -10,6 +11,23 @@ from ..schemas import FlashcardReviewOut, ReviewSubmission, DeckStatsOut
 from ..services.srs.sm2 import sm2
 
 router = APIRouter(prefix="/flashcards", tags=["flashcards"])
+
+
+def _parse_tz(tz: str) -> str:
+    """Validate and return timezone name, falling back to UTC."""
+    try:
+        ZoneInfo(tz)
+        return tz
+    except (KeyError, ValueError):
+        return "UTC"
+
+
+def _local_midnight_utc(tz_name: str) -> dt.datetime:
+    """Return today's midnight in the user's timezone as naive UTC."""
+    tz = ZoneInfo(tz_name)
+    now_local = dt.datetime.now(tz)
+    local_midnight = dt.datetime.combine(now_local.date(), dt.time.min, tzinfo=tz)
+    return local_midnight.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
 
 
 async def _get_artifact_cards(artifact_id: int, db: AsyncSession) -> tuple[Artifact, list[dict]]:
@@ -52,7 +70,11 @@ async def _ensure_reviews(artifact_id: int, card_count: int, db: AsyncSession) -
 
 
 @router.get("/{artifact_id}/session", response_model=list[FlashcardReviewOut])
-async def get_session(artifact_id: int, db: AsyncSession = Depends(get_db)):
+async def get_session(
+    artifact_id: int,
+    tz: str = Query("UTC"),
+    db: AsyncSession = Depends(get_db),
+):
     """Get due cards for review (next_review <= now)."""
     _, cards = await _get_artifact_cards(artifact_id, db)
     await _ensure_reviews(artifact_id, len(cards), db)
@@ -67,8 +89,14 @@ async def get_session(artifact_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{artifact_id}/review", response_model=FlashcardReviewOut)
-async def submit_review(artifact_id: int, body: ReviewSubmission, db: AsyncSession = Depends(get_db)):
+async def submit_review(
+    artifact_id: int,
+    body: ReviewSubmission,
+    tz: str = Query("UTC"),
+    db: AsyncSession = Depends(get_db),
+):
     """Submit a rating for a card, update SM-2 state."""
+    tz = _parse_tz(tz)
     _, cards = await _get_artifact_cards(artifact_id, db)
     if body.card_index < 0 or body.card_index >= len(cards):
         raise HTTPException(400, "Invalid card_index")
@@ -82,7 +110,7 @@ async def submit_review(artifact_id: int, body: ReviewSubmission, db: AsyncSessi
         )
     )).scalar_one()
 
-    result = sm2(body.quality, rev.ease_factor, rev.interval, rev.repetitions)
+    result = sm2(body.quality, rev.ease_factor, rev.interval, rev.repetitions, tz=tz)
     rev.ease_factor = result.ease_factor
     rev.interval = result.interval
     rev.repetitions = result.repetitions
@@ -94,7 +122,11 @@ async def submit_review(artifact_id: int, body: ReviewSubmission, db: AsyncSessi
 
 
 @router.get("/{artifact_id}/stats", response_model=DeckStatsOut)
-async def get_stats(artifact_id: int, db: AsyncSession = Depends(get_db)):
+async def get_stats(
+    artifact_id: int,
+    tz: str = Query("UTC"),
+    db: AsyncSession = Depends(get_db),
+):
     """Deck statistics."""
     _, cards = await _get_artifact_cards(artifact_id, db)
     await _ensure_reviews(artifact_id, len(cards), db)

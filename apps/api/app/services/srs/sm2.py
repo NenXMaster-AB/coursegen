@@ -1,6 +1,7 @@
 from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
+from zoneinfo import ZoneInfo
 
 
 @dataclass
@@ -11,11 +12,21 @@ class SM2Result:
     next_review: dt.datetime
 
 
+def _local_midnight_as_utc(tz_name: str, interval_days: int) -> dt.datetime:
+    """Compute midnight N days from now in the user's timezone, returned as naive UTC."""
+    tz = ZoneInfo(tz_name)
+    now_local = dt.datetime.now(tz)
+    target_date = (now_local + dt.timedelta(days=interval_days)).date()
+    local_midnight = dt.datetime.combine(target_date, dt.time.min, tzinfo=tz)
+    return local_midnight.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+
+
 def sm2(
     quality: int,
     ease_factor: float,
     interval: int,
     repetitions: int,
+    tz: str = "UTC",
 ) -> SM2Result:
     """Pure SM-2 algorithm. quality: 0–5, returns updated scheduling state."""
     assert 0 <= quality <= 5
@@ -35,9 +46,7 @@ def sm2(
     new_ef = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     new_ef = max(1.3, new_ef)
 
-    # Schedule to midnight UTC on the target day so reviews reset daily
-    today_start = dt.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    next_review = today_start + dt.timedelta(days=new_interval)
+    next_review = _local_midnight_as_utc(tz, new_interval)
 
     return SM2Result(
         ease_factor=round(new_ef, 4),
