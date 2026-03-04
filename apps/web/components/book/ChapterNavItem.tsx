@@ -41,7 +41,7 @@ export function ChapterNavItem({
             <span className="text-[11px] font-mono text-text-tertiary">
               {String(chapter.index).padStart(2, "0")}
             </span>
-            <span className="text-sm font-medium truncate">
+            <span className="text-sm font-medium line-clamp-2">
               {chapter.title}
             </span>
           </div>

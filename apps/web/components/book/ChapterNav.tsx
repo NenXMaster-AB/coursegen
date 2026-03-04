@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChapterNavItem } from "./ChapterNavItem";
 import type { Chapter, ArtifactType } from "@/lib/types";
 
@@ -29,7 +28,7 @@ export function ChapterNav({
   }, [chapters, search]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-[calc(100vh-65px)]">
       <div className="p-3 border-b border-border-subtle">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
@@ -41,7 +40,7 @@ export function ChapterNav({
           />
         </div>
       </div>
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <div className="p-2 space-y-0.5">
           {filtered.map((ch) => (
             <ChapterNavItem
@@ -58,7 +57,7 @@ export function ChapterNav({
             </p>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
