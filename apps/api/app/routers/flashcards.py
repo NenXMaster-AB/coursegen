@@ -42,7 +42,7 @@ async def _ensure_reviews(artifact_id: int, card_count: int, db: AsyncSession) -
             "ease_factor": 2.5,
             "interval": 0,
             "repetitions": 0,
-            "next_review": dt.datetime.utcnow(),
+            "next_review": dt.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0),
             "last_review": None,
         }
         for i in missing

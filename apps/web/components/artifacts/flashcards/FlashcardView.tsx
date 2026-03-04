@@ -16,17 +16,17 @@ interface FlashcardViewProps {
 }
 
 function formatTimeUntil(isoDate: string): string {
-  const diff = new Date(isoDate).getTime() - Date.now();
-  if (diff <= 0) return "now";
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours >= 24) {
-    const days = Math.floor(hours / 24);
-    const remHours = hours % 24;
-    return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
-  }
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+  const now = new Date();
+  const target = new Date(isoDate);
+  if (target.getTime() <= now.getTime()) return "now";
+
+  // Compare calendar dates to determine day distance
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const dayDiff = Math.round((targetDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (dayDiff <= 1) return "tomorrow";
+  return `in ${dayDiff} days`;
 }
 
 export function FlashcardView({ artifact }: FlashcardViewProps) {
@@ -170,7 +170,7 @@ export function FlashcardView({ artifact }: FlashcardViewProps) {
                   {stats.next_review_at ? (
                     <>
                       <Clock className="w-3 h-3 inline mr-1 -mt-0.5" />
-                      Next review due in {formatTimeUntil(stats.next_review_at)}. Use Practice to study without affecting your schedule.
+                      Next review {formatTimeUntil(stats.next_review_at)}. Use Practice to study without affecting your schedule.
                     </>
                   ) : (
                     <>Reviews complete for today. Use Practice to keep studying without affecting your schedule.</>

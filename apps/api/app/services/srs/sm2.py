@@ -35,7 +35,9 @@ def sm2(
     new_ef = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
     new_ef = max(1.3, new_ef)
 
-    next_review = dt.datetime.utcnow() + dt.timedelta(days=new_interval)
+    # Schedule to midnight UTC on the target day so reviews reset daily
+    today_start = dt.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    next_review = today_start + dt.timedelta(days=new_interval)
 
     return SM2Result(
         ease_factor=round(new_ef, 4),
